@@ -1,0 +1,641 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tasks — a full stack example</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+
+<style>
+  :root {
+    --paper: #FAF6EE;
+    --paper-2: #F3ECDC;
+    --ink: #1A1814;
+    --ink-2: #5C544A;
+    --ink-3: #8A8276;
+    --line: #E5DECF;
+    --line-2: #D4CAB5;
+    --accent: #C2410C;
+    --accent-soft: #FBE8DC;
+    --success: #4D7C0F;
+    --success-soft: #ECF4DC;
+    --high: #B91C1C;
+    --med: #C2410C;
+    --low: #57534E;
+    --card: #FFFFFF;
+    --radius: 10px;
+    --radius-sm: 6px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Inter', system-ui, sans-serif;
+    background: var(--paper);
+    color: var(--ink);
+    line-height: 1.5;
+    min-height: 100vh;
+    padding: 40px 20px;
+    background-image:
+      radial-gradient(circle at 20% 10%, rgba(194, 65, 12, 0.04) 0%, transparent 40%),
+      radial-gradient(circle at 80% 80%, rgba(77, 124, 15, 0.04) 0%, transparent 40%);
+  }
+
+  .app {
+    max-width: 720px;
+    margin: 0 auto;
+  }
+
+  /* ---------- Header ---------- */
+  header {
+    text-align: center;
+    margin-bottom: 48px;
+    animation: fadeUp 0.5s ease-out;
+  }
+  h1 {
+    font-family: 'Fraunces', serif;
+    font-weight: 400;
+    font-size: 56px;
+    letter-spacing: -2px;
+    line-height: 1;
+    margin-bottom: 12px;
+  }
+  h1 em {
+    font-style: italic;
+    color: var(--accent);
+    font-weight: 300;
+  }
+  .subtitle {
+    color: var(--ink-2);
+    font-size: 14px;
+    letter-spacing: 0.02em;
+  }
+
+  /* ---------- Stats ---------- */
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    margin-bottom: 32px;
+    animation: fadeUp 0.5s ease-out 0.1s both;
+  }
+  .stat {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 16px 18px;
+  }
+  .stat-label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--ink-3);
+    margin-bottom: 6px;
+  }
+  .stat-value {
+    font-family: 'Fraunces', serif;
+    font-size: 32px;
+    font-weight: 500;
+    line-height: 1;
+  }
+  .stat-value.accent { color: var(--accent); }
+  .stat-value.success { color: var(--success); }
+
+  /* ---------- Add task form ---------- */
+  .add-card {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 20px;
+    margin-bottom: 24px;
+    animation: fadeUp 0.5s ease-out 0.2s both;
+  }
+  .add-card h2 {
+    font-family: 'Fraunces', serif;
+    font-weight: 500;
+    font-size: 18px;
+    margin-bottom: 16px;
+  }
+  .form-row {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+  .form-row:last-of-type { margin-bottom: 0; }
+
+  input[type="text"], select {
+    font-family: inherit;
+    font-size: 14px;
+    color: var(--ink);
+    background: var(--paper);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-sm);
+    padding: 10px 12px;
+    width: 100%;
+    transition: border-color 0.15s, background 0.15s;
+  }
+  input[type="text"]:focus, select:focus {
+    outline: none;
+    border-color: var(--accent);
+    background: var(--card);
+  }
+  input::placeholder { color: var(--ink-3); }
+
+  button {
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    border: none;
+    border-radius: var(--radius-sm);
+    padding: 10px 20px;
+    transition: all 0.15s;
+  }
+  .btn-primary {
+    background: var(--accent);
+    color: white;
+    white-space: nowrap;
+  }
+  .btn-primary:hover { background: #9c340a; }
+  .btn-primary:active { transform: scale(0.98); }
+
+  /* ---------- Filters ---------- */
+  .filters {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+    animation: fadeUp 0.5s ease-out 0.3s both;
+  }
+  .filter-btn {
+    background: transparent;
+    color: var(--ink-2);
+    border: 1px solid var(--line);
+    padding: 6px 14px;
+    font-size: 13px;
+    font-weight: 500;
+  }
+  .filter-btn:hover { background: var(--paper-2); }
+  .filter-btn.active {
+    background: var(--ink);
+    color: var(--paper);
+    border-color: var(--ink);
+  }
+
+  .search-wrap {
+    flex: 1;
+    min-width: 180px;
+  }
+  .search-wrap input {
+    background: transparent;
+    border: 1px solid var(--line);
+    padding: 6px 12px;
+    font-size: 13px;
+  }
+
+  /* ---------- Task list ---------- */
+  .task-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    animation: fadeUp 0.5s ease-out 0.4s both;
+  }
+  .task {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 14px 16px;
+    transition: all 0.2s;
+    animation: slideIn 0.3s ease-out;
+  }
+  .task:hover {
+    border-color: var(--line-2);
+  }
+  .task.done {
+    background: var(--paper-2);
+    opacity: 0.7;
+  }
+  .task.done .task-title {
+    text-decoration: line-through;
+    color: var(--ink-3);
+  }
+
+  .checkbox {
+    width: 20px;
+    height: 20px;
+    border: 1.5px solid var(--line-2);
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: all 0.15s;
+  }
+  .checkbox:hover { border-color: var(--accent); }
+  .task.done .checkbox {
+    background: var(--success);
+    border-color: var(--success);
+  }
+  .task.done .checkbox::after {
+    content: '✓';
+    color: white;
+    font-size: 12px;
+    font-weight: 700;
+  }
+
+  .task-body { flex: 1; min-width: 0; }
+  .task-title {
+    font-size: 15px;
+    font-weight: 500;
+    margin-bottom: 3px;
+    word-break: break-word;
+  }
+  .task-meta {
+    display: flex;
+    gap: 10px;
+    font-size: 12px;
+    color: var(--ink-3);
+    align-items: center;
+  }
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 11px;
+    font-weight: 500;
+    text-transform: lowercase;
+  }
+  .badge.cat-work { background: #DEEBF7; color: #1E4D8C; }
+  .badge.cat-personal { background: #FBE8DC; color: #9c340a; }
+  .badge.cat-learning { background: #ECF4DC; color: #3F6B0D; }
+  .badge.cat-other { background: #ECE9E1; color: #5C544A; }
+
+  .priority {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .priority::before {
+    content: '';
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+  }
+  .priority.high::before { background: var(--high); }
+  .priority.med::before { background: var(--med); }
+  .priority.low::before { background: var(--low); }
+
+  .delete-btn {
+    background: transparent;
+    color: var(--ink-3);
+    padding: 6px 8px;
+    font-size: 16px;
+    border-radius: var(--radius-sm);
+    opacity: 0;
+    transition: opacity 0.15s, background 0.15s, color 0.15s;
+  }
+  .task:hover .delete-btn { opacity: 1; }
+  .delete-btn:hover {
+    background: #FEE2E2;
+    color: var(--high);
+  }
+
+  /* ---------- Empty / loading ---------- */
+  .empty, .loading {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--ink-3);
+  }
+  .empty-mark {
+    font-family: 'Fraunces', serif;
+    font-size: 48px;
+    font-style: italic;
+    color: var(--line-2);
+    margin-bottom: 12px;
+  }
+  .empty p { font-size: 14px; }
+
+  /* ---------- Footer note ---------- */
+  .note {
+    margin-top: 48px;
+    padding-top: 24px;
+    border-top: 1px solid var(--line);
+    font-size: 12px;
+    color: var(--ink-3);
+    text-align: center;
+    line-height: 1.7;
+  }
+  .note code {
+    background: var(--paper-2);
+    padding: 1px 6px;
+    border-radius: 4px;
+    font-size: 11px;
+  }
+
+  /* ---------- Animations ---------- */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes slideIn {
+    from { opacity: 0; transform: translateX(-8px); }
+    to { opacity: 1; transform: translateX(0); }
+  }
+
+  @media (max-width: 540px) {
+    h1 { font-size: 42px; }
+    .stats { grid-template-columns: repeat(3, 1fr); gap: 8px; }
+    .stat { padding: 12px; }
+    .stat-value { font-size: 24px; }
+    .form-row { flex-direction: column; }
+    body { padding: 24px 16px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="app">
+
+  <header>
+    <h1>Tasks<em>.</em></h1>
+    <p class="subtitle">A small full-stack example — data persists across sessions</p>
+  </header>
+
+  <!-- STATS: like a /api/stats endpoint -->
+  <section class="stats">
+    <div class="stat">
+      <div class="stat-label">Total</div>
+      <div class="stat-value" id="stat-total">0</div>
+    </div>
+    <div class="stat">
+      <div class="stat-label">Active</div>
+      <div class="stat-value accent" id="stat-active">0</div>
+    </div>
+    <div class="stat">
+      <div class="stat-label">Done</div>
+      <div class="stat-value success" id="stat-done">0</div>
+    </div>
+  </section>
+
+  <!-- ADD TASK: like POST /api/tasks -->
+  <section class="add-card">
+    <h2>New task</h2>
+    <div class="form-row">
+      <input type="text" id="input-title" placeholder="What needs to get done?" maxlength="200">
+    </div>
+    <div class="form-row">
+      <select id="input-category">
+        <option value="work">Work</option>
+        <option value="personal">Personal</option>
+        <option value="learning">Learning</option>
+        <option value="other">Other</option>
+      </select>
+      <select id="input-priority">
+        <option value="low">Low priority</option>
+        <option value="med" selected>Medium priority</option>
+        <option value="high">High priority</option>
+      </select>
+      <button class="btn-primary" id="add-btn">Add</button>
+    </div>
+  </section>
+
+  <!-- FILTERS: like GET /api/tasks?status=active -->
+  <section class="filters">
+    <button class="filter-btn active" data-filter="all">All</button>
+    <button class="filter-btn" data-filter="active">Active</button>
+    <button class="filter-btn" data-filter="done">Done</button>
+    <div class="search-wrap">
+      <input type="text" id="search" placeholder="Search tasks…">
+    </div>
+  </section>
+
+  <!-- TASK LIST: GET /api/tasks -->
+  <section id="task-list" class="task-list">
+    <div class="loading">Loading…</div>
+  </section>
+
+  <p class="note">
+    Built as a learning example. Data is stored via the artifact <code>storage</code> API —<br>
+    in a real app this would be a database (Postgres, MongoDB) accessed through a backend.
+  </p>
+
+</div>
+
+<script>
+/* ============================================================
+   TASK MANAGER — Full Stack Example
+   ============================================================
+   This single file demonstrates the core patterns you'll use
+   in any full-stack app:
+
+     1. STATE       (the in-memory data, like a Redux store)
+     2. STORAGE     (persistence — here it's window.storage,
+                    in a real app it would be a database)
+     3. CRUD        (Create, Read, Update, Delete operations)
+     4. RENDER      (turning state into DOM, like a templating
+                    engine or React's render)
+     5. EVENTS      (wiring user actions to state changes)
+
+   In a real full-stack app the structure would be similar but
+   SPLIT across files/services:
+
+     - Frontend (React/Vue): the state + render + events
+     - API server (Express/Django): the CRUD endpoints
+     - Database (Postgres/Mongo): the storage layer
+============================================================ */
+
+// --- 1. STATE -----------------------------------------------
+const state = {
+  tasks: [],         // [{id, title, category, priority, done, createdAt}]
+  filter: 'all',     // 'all' | 'active' | 'done'
+  search: ''
+};
+
+const STORAGE_KEY = 'tasks:all';
+
+// --- 2. STORAGE LAYER ---------------------------------------
+// In a real app these would be `fetch('/api/tasks')` calls.
+// Here we use the artifact storage API as a "fake database".
+
+async function loadTasks() {
+  try {
+    const result = await window.storage.get(STORAGE_KEY);
+    state.tasks = result ? JSON.parse(result.value) : [];
+  } catch (err) {
+    // Key doesn't exist yet — totally fine on first load.
+    state.tasks = [];
+  }
+}
+
+async function saveTasks() {
+  try {
+    await window.storage.set(STORAGE_KEY, JSON.stringify(state.tasks));
+  } catch (err) {
+    console.error('Save failed:', err);
+  }
+}
+
+// --- 3. CRUD OPERATIONS -------------------------------------
+// Each of these would map to an HTTP endpoint in a real app:
+//   POST   /api/tasks          → addTask
+//   PATCH  /api/tasks/:id      → toggleTask
+//   DELETE /api/tasks/:id      → deleteTask
+
+function uid() {
+  return Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+}
+
+async function addTask(title, category, priority) {
+  const task = {
+    id: uid(),
+    title: title.trim(),
+    category,
+    priority,
+    done: false,
+    createdAt: Date.now()
+  };
+  state.tasks.unshift(task);     // newest first
+  await saveTasks();
+  render();
+}
+
+async function toggleTask(id) {
+  const t = state.tasks.find(t => t.id === id);
+  if (!t) return;
+  t.done = !t.done;
+  await saveTasks();
+  render();
+}
+
+async function deleteTask(id) {
+  state.tasks = state.tasks.filter(t => t.id !== id);
+  await saveTasks();
+  render();
+}
+
+// --- 4. RENDER ----------------------------------------------
+// Pure-ish function: state in, DOM out.
+
+function getVisibleTasks() {
+  return state.tasks.filter(t => {
+    if (state.filter === 'active' && t.done) return false;
+    if (state.filter === 'done' && !t.done) return false;
+    if (state.search && !t.title.toLowerCase().includes(state.search.toLowerCase())) return false;
+    return true;
+  });
+}
+
+function escapeHTML(str) {
+  // Always escape user input before injecting into HTML.
+  // This prevents XSS — one of the most common web vulnerabilities.
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+
+function renderStats() {
+  const total = state.tasks.length;
+  const done = state.tasks.filter(t => t.done).length;
+  document.getElementById('stat-total').textContent = total;
+  document.getElementById('stat-active').textContent = total - done;
+  document.getElementById('stat-done').textContent = done;
+}
+
+function renderTasks() {
+  const list = document.getElementById('task-list');
+  const visible = getVisibleTasks();
+
+  if (visible.length === 0) {
+    const msg = state.tasks.length === 0
+      ? 'No tasks yet. Add your first one above.'
+      : 'Nothing matches the current filter.';
+    list.innerHTML = `
+      <div class="empty">
+        <div class="empty-mark">∅</div>
+        <p>${msg}</p>
+      </div>`;
+    return;
+  }
+
+  list.innerHTML = visible.map(t => `
+    <div class="task ${t.done ? 'done' : ''}" data-id="${t.id}">
+      <div class="checkbox" data-action="toggle"></div>
+      <div class="task-body">
+        <div class="task-title">${escapeHTML(t.title)}</div>
+        <div class="task-meta">
+          <span class="badge cat-${t.category}">${t.category}</span>
+          <span class="priority ${t.priority}">${t.priority === 'med' ? 'medium' : t.priority}</span>
+        </div>
+      </div>
+      <button class="delete-btn" data-action="delete" aria-label="Delete">×</button>
+    </div>
+  `).join('');
+}
+
+function render() {
+  renderStats();
+  renderTasks();
+}
+
+// --- 5. EVENT HANDLERS --------------------------------------
+
+document.getElementById('add-btn').addEventListener('click', handleAdd);
+document.getElementById('input-title').addEventListener('keydown', e => {
+  if (e.key === 'Enter') handleAdd();
+});
+
+function handleAdd() {
+  const titleEl = document.getElementById('input-title');
+  const title = titleEl.value.trim();
+  if (!title) return;
+  const category = document.getElementById('input-category').value;
+  const priority = document.getElementById('input-priority').value;
+  addTask(title, category, priority);
+  titleEl.value = '';
+  titleEl.focus();
+}
+
+// Event delegation: one listener handles every task's clicks.
+// More efficient than adding a listener to every task button.
+document.getElementById('task-list').addEventListener('click', e => {
+  const action = e.target.dataset.action;
+  const taskEl = e.target.closest('.task');
+  if (!taskEl) return;
+  const id = taskEl.dataset.id;
+  if (action === 'toggle') toggleTask(id);
+  if (action === 'delete') deleteTask(id);
+});
+
+// Filter buttons
+document.querySelectorAll('.filter-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    state.filter = btn.dataset.filter;
+    renderTasks();
+  });
+});
+
+// Search input
+document.getElementById('search').addEventListener('input', e => {
+  state.search = e.target.value;
+  renderTasks();
+});
+
+// --- 6. INIT ------------------------------------------------
+(async function init() {
+  await loadTasks();
+  render();
+})();
+</script>
+
+</body>
+</html>
