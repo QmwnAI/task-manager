@@ -423,7 +423,7 @@
   </section>
 
   <p class="note">
-    Built as a learning example. Data is stored via the artifact <code>storage</code> API —<br>
+    Built as a learning example. Data is stored via the browser's <code>localStorage</code> —<br>
     in a real app this would be a database (Postgres, MongoDB) accessed through a backend.
   </p>
 
@@ -437,7 +437,7 @@
    in any full-stack app:
 
      1. STATE       (the in-memory data, like a Redux store)
-     2. STORAGE     (persistence — here it's window.storage,
+     2. STORAGE     (persistence — here it's localStorage,
                     in a real app it would be a database)
      3. CRUD        (Create, Read, Update, Delete operations)
      4. RENDER      (turning state into DOM, like a templating
@@ -450,6 +450,14 @@
      - Frontend (React/Vue): the state + render + events
      - API server (Express/Django): the CRUD endpoints
      - Database (Postgres/Mongo): the storage layer
+
+   NOTE ON STORAGE: this file uses window.localStorage, which is
+   a real browser API that persists data on the visitor's own
+   device — it works when this file is opened directly, hosted
+   on GitHub Pages, or served from anywhere. It does NOT sync
+   across devices or browsers, and clearing browser data wipes
+   it. For that you'd swap this layer for real fetch() calls to
+   a backend + database, same as the comments above describe.
 ============================================================ */
 
 // --- 1. STATE -----------------------------------------------
@@ -463,22 +471,24 @@ const STORAGE_KEY = 'tasks:all';
 
 // --- 2. STORAGE LAYER ---------------------------------------
 // In a real app these would be `fetch('/api/tasks')` calls.
-// Here we use the artifact storage API as a "fake database".
+// Here we use localStorage as a simple client-side "database".
 
 async function loadTasks() {
   try {
-    const result = await window.storage.get(STORAGE_KEY);
-    state.tasks = result ? JSON.parse(result.value) : [];
+    const raw = window.localStorage.getItem(STORAGE_KEY);
+    state.tasks = raw ? JSON.parse(raw) : [];
   } catch (err) {
-    // Key doesn't exist yet — totally fine on first load.
+    // Missing key, corrupted JSON, or storage disabled — start fresh.
+    console.error('Load failed:', err);
     state.tasks = [];
   }
 }
 
 async function saveTasks() {
   try {
-    await window.storage.set(STORAGE_KEY, JSON.stringify(state.tasks));
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(state.tasks));
   } catch (err) {
+    // Can throw if storage is full or disabled (e.g. private browsing).
     console.error('Save failed:', err);
   }
 }
