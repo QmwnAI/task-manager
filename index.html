@@ -274,9 +274,10 @@
     text-transform: lowercase;
   }
   .badge.cat-work { background: #DEEBF7; color: #1E4D8C; }
+  .badge.cat-school { background: #F1F5F9; color: #334155; }
   .badge.cat-personal { background: #FBE8DC; color: #9c340a; }
   .badge.cat-learning { background: #ECF4DC; color: #3F6B0D; }
-  .badge.cat-other { background: #ECE9E1; color: #5C544A; }
+  .badge.cat-other { background: #E2E8F0; color: #0F172A; }
 
   .priority {
     display: inline-flex;
@@ -365,8 +366,7 @@
 <div class="app">
 
   <header>
-    <h1>Tasks<em>.</em></h1>
-    <p class="subtitle">A small full-stack example</p>
+    <h1>Task Manager!</h1>
   </header>
 
   <!-- STATS: like a /api/stats endpoint -->
@@ -394,9 +394,11 @@
     <div class="form-row">
       <select id="input-category">
         <option value="work">Work</option>
+        <option value="school">School</option>
         <option value="personal">Personal</option>
         <option value="learning">Learning</option>
         <option value="other">Other</option>
+        
       </select>
       <select id="input-priority">
         <option value="low">Low priority</option>
