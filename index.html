@@ -324,7 +324,7 @@
     color: var(--ink);
   }
 
-  .edit-input {
+    .edit-input {
     font-family: inherit;
     font-size: 15px;
     font-weight: 500;
@@ -336,6 +336,17 @@
     width: 100%;
   }
   .edit-input:focus { outline: none; }
+
+  .edit-meta {
+    display: flex;
+    gap: 8px;
+    margin-top: 6px;
+  }
+  .edit-meta select {
+    font-size: 12px;
+    padding: 4px 8px;
+    width: auto;
+  }
 
   /* ---------- Empty / loading ---------- */
   .empty, .loading {
@@ -569,14 +580,19 @@ function cancelEdit() {
 }
 
 async function saveEdit(id) {
-  const input = document.querySelector(`.edit-input[data-id="${id}"]`);
-  if (!input) return;
-  const newTitle = input.value.trim();
-  if (newTitle) {
-    const t = state.tasks.find(t => t.id === id);
-    if (t) t.title = newTitle;
-    await saveTasks();
+  const titleInput = document.querySelector(`.edit-input[data-id="${id}"]`);
+  const categorySelect = document.querySelector(`.edit-category[data-id="${id}"]`);
+  const prioritySelect = document.querySelector(`.edit-priority[data-id="${id}"]`);
+  if (!titleInput) return;
+
+  const newTitle = titleInput.value.trim();
+  const t = state.tasks.find(t => t.id === id);
+  if (t) {
+    if (newTitle) t.title = newTitle;
+    if (categorySelect) t.category = categorySelect.value;
+    if (prioritySelect) t.priority = prioritySelect.value;
   }
+  await saveTasks();
   state.editingId = null;
   renderTasks();
 }
@@ -625,19 +641,33 @@ function renderTasks() {
     return;
   }
 
-    list.innerHTML = visible.map(t => {
+      list.innerHTML = visible.map(t => {
     const isEditing = t.id === state.editingId;
     return `
     <div class="task ${t.done ? 'done' : ''}" data-id="${t.id}">
       <div class="checkbox" data-action="toggle"></div>
       <div class="task-body">
         ${isEditing
-          ? `<input type="text" class="edit-input" data-id="${t.id}" value="${escapeHTML(t.title)}" maxlength="200">`
-          : `<div class="task-title">${escapeHTML(t.title)}</div>`}
-        <div class="task-meta">
-          <span class="badge cat-${t.category}">${t.category}</span>
-          <span class="priority ${t.priority}">${t.priority === 'med' ? 'medium' : t.priority}</span>
-        </div>
+          ? `<input type="text" class="edit-input" data-id="${t.id}" value="${escapeHTML(t.title)}" maxlength="200">
+             <div class="edit-meta">
+               <select class="edit-category" data-id="${t.id}">
+                 <option value="work" ${t.category === 'work' ? 'selected' : ''}>Work</option>
+                 <option value="school" ${t.category === 'school' ? 'selected' : ''}>School</option>
+                 <option value="personal" ${t.category === 'personal' ? 'selected' : ''}>Personal</option>
+                 <option value="learning" ${t.category === 'learning' ? 'selected' : ''}>Learning</option>
+                 <option value="other" ${t.category === 'other' ? 'selected' : ''}>Other</option>
+               </select>
+               <select class="edit-priority" data-id="${t.id}">
+                 <option value="low" ${t.priority === 'low' ? 'selected' : ''}>Low priority</option>
+                 <option value="med" ${t.priority === 'med' ? 'selected' : ''}>Medium priority</option>
+                 <option value="high" ${t.priority === 'high' ? 'selected' : ''}>High priority</option>
+               </select>
+             </div>`
+          : `<div class="task-title">${escapeHTML(t.title)}</div>
+             <div class="task-meta">
+               <span class="badge cat-${t.category}">${t.category}</span>
+               <span class="priority ${t.priority}">${t.priority === 'med' ? 'medium' : t.priority}</span>
+             </div>`}
       </div>
       ${isEditing
         ? `<button class="edit-btn" data-action="save" aria-label="Save">✓</button>
