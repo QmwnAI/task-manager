@@ -309,6 +309,34 @@
     color: var(--high);
   }
 
+    .edit-btn {
+    background: transparent;
+    color: var(--ink-3);
+    padding: 6px 8px;
+    font-size: 14px;
+    border-radius: var(--radius-sm);
+    opacity: 0;
+    transition: opacity 0.15s, background 0.15s, color 0.15s;
+  }
+  .task:hover .edit-btn { opacity: 1; }
+  .edit-btn:hover {
+    background: var(--paper-2);
+    color: var(--ink);
+  }
+
+  .edit-input {
+    font-family: inherit;
+    font-size: 15px;
+    font-weight: 500;
+    color: var(--ink);
+    background: var(--paper);
+    border: 1px solid var(--accent);
+    border-radius: var(--radius-sm);
+    padding: 4px 8px;
+    width: 100%;
+  }
+  .edit-input:focus { outline: none; }
+
   /* ---------- Empty / loading ---------- */
   .empty, .loading {
     text-align: center;
@@ -460,7 +488,8 @@
 const state = {
   tasks: [],         // [{id, title, category, priority, done, createdAt}]
   filter: 'all',     // 'all' | 'active' | 'done'
-  search: ''
+  search: '',
+  editingId: null
 };
 
 const STORAGE_KEY = 'tasks:all';
@@ -527,6 +556,31 @@ async function deleteTask(id) {
   render();
 }
 
+function startEdit(id) {
+  state.editingId = id;
+  renderTasks();
+  const input = document.querySelector(`.edit-input[data-id="${id}"]`);
+  if (input) { input.focus(); input.select(); }
+}
+
+function cancelEdit() {
+  state.editingId = null;
+  renderTasks();
+}
+
+async function saveEdit(id) {
+  const input = document.querySelector(`.edit-input[data-id="${id}"]`);
+  if (!input) return;
+  const newTitle = input.value.trim();
+  if (newTitle) {
+    const t = state.tasks.find(t => t.id === id);
+    if (t) t.title = newTitle;
+    await saveTasks();
+  }
+  state.editingId = null;
+  renderTasks();
+}
+
 // --- 4. RENDER ----------------------------------------------
 // Pure-ish function: state in, DOM out.
 
@@ -571,19 +625,27 @@ function renderTasks() {
     return;
   }
 
-  list.innerHTML = visible.map(t => `
+    list.innerHTML = visible.map(t => {
+    const isEditing = t.id === state.editingId;
+    return `
     <div class="task ${t.done ? 'done' : ''}" data-id="${t.id}">
       <div class="checkbox" data-action="toggle"></div>
       <div class="task-body">
-        <div class="task-title">${escapeHTML(t.title)}</div>
+        ${isEditing
+          ? `<input type="text" class="edit-input" data-id="${t.id}" value="${escapeHTML(t.title)}" maxlength="200">`
+          : `<div class="task-title">${escapeHTML(t.title)}</div>`}
         <div class="task-meta">
           <span class="badge cat-${t.category}">${t.category}</span>
           <span class="priority ${t.priority}">${t.priority === 'med' ? 'medium' : t.priority}</span>
         </div>
       </div>
-      <button class="delete-btn" data-action="delete" aria-label="Delete">×</button>
-    </div>
-  `).join('');
+      ${isEditing
+        ? `<button class="edit-btn" data-action="save" aria-label="Save">✓</button>
+           <button class="delete-btn" data-action="cancel" aria-label="Cancel">×</button>`
+        : `<button class="edit-btn" data-action="edit" aria-label="Edit">✎</button>
+           <button class="delete-btn" data-action="delete" aria-label="Delete">×</button>`}
+    </div>`;
+  }).join('');
 }
 
 function render() {
@@ -618,6 +680,17 @@ document.getElementById('task-list').addEventListener('click', e => {
   const id = taskEl.dataset.id;
   if (action === 'toggle') toggleTask(id);
   if (action === 'delete') deleteTask(id);
+  if (action === 'edit') startEdit(id);
+  if (action === 'save') saveEdit(id);
+  if (action === 'cancel') cancelEdit();
+});
+
+// Enter to save, Escape to cancel, while editing
+document.getElementById('task-list').addEventListener('keydown', e => {
+  if (!e.target.classList.contains('edit-input')) return;
+  const id = e.target.dataset.id;
+  if (e.key === 'Enter') saveEdit(id);
+  if (e.key === 'Escape') cancelEdit();
 });
 
 // Filter buttons
