@@ -49,6 +49,34 @@
     margin: 0 auto;
   }
 
+  /* ---------- Top-right account controls ---------- */
+  .auth-bar {
+    position: fixed;
+    top: 18px;
+    right: 22px;
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .auth-user {
+    max-width: 260px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 13px;
+    color: var(--ink-2);
+  }
+  .auth-btn {
+    background: var(--ink);
+    color: var(--paper);
+    white-space: nowrap;
+    padding: 9px 15px;
+  }
+  .auth-btn:hover {
+    opacity: .86;
+  }
+
   /* ---------- Header ---------- */
   header {
     text-align: center;
@@ -411,6 +439,16 @@
   }
 
   @media (max-width: 540px) {
+    body { padding-top: 70px; }
+    .auth-bar {
+      top: 12px;
+      right: 12px;
+      left: 12px;
+      justify-content: flex-end;
+    }
+    .auth-user {
+      max-width: 55vw;
+    }
     h1 { font-size: 42px; }
     .stats { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
     .stat { padding: 12px; }
@@ -448,6 +486,11 @@
 <body>
 
 <div class="app">
+  <div class="auth-bar">
+    <div class="auth-user" id="auth-user"></div>
+    <button id="logout-btn" class="auth-btn" type="button">Log out</button>
+  </div>
+
   <section id="auth-screen" class="auth-screen hidden">
     <h2>Welcome back</h2>
     <p>Sign in with Google to access your private task list on any device.</p>
@@ -514,11 +557,7 @@
     <div class="loading">Loading…</div>
   </section>
 
-  <div class="auth-bar">
-    <div class="auth-user" id="auth-user"></div>
-    <button id="logout-btn" class="auth-btn" type="button">Log out</button>
-  </div>
-  </div>
+  
 </div>
 
 <script>
