@@ -381,6 +381,25 @@
     font-size: 11px;
   }
 
+  /* ---------- Authentication ---------- */
+  .auth-bar {
+    display:flex; align-items:center; justify-content:space-between; gap:12px;
+    background:var(--card); border:1px solid var(--line); border-radius:var(--radius);
+    padding:12px 14px; margin-bottom:24px;
+  }
+  .auth-user { min-width:0; font-size:13px; color:var(--ink-2); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .auth-btn { background:var(--ink); color:var(--paper); white-space:nowrap; }
+  .auth-btn:hover { opacity:.86; }
+  .auth-screen {
+    max-width:420px; margin:80px auto; text-align:center; background:var(--card);
+    border:1px solid var(--line); border-radius:var(--radius); padding:32px 24px;
+  }
+  .auth-screen h2 { font-family:'Fraunces',serif; font-size:30px; font-weight:500; margin-bottom:10px; }
+  .auth-screen p { color:var(--ink-2); font-size:14px; margin-bottom:22px; }
+  .google-btn { width:100%; background:#fff; color:var(--ink); border:1px solid var(--line-2); }
+  .google-btn:hover { background:var(--paper-2); }
+  .hidden { display:none !important; }
+
   /* ---------- Animations ---------- */
   @keyframes fadeUp {
     from { opacity: 0; transform: translateY(8px); }
@@ -429,7 +448,13 @@
 <body>
 
 <div class="app">
+  <section id="auth-screen" class="auth-screen hidden">
+    <h2>Welcome back</h2>
+    <p>Sign in with Google to access your private task list on any device.</p>
+    <button id="google-login-btn" class="google-btn" type="button">Continue with Google</button>
+  </section>
 
+  <div id="task-app" class="hidden">
   <header>
     <h1>Task Manager!</h1>
   </header>
@@ -488,6 +513,12 @@
   <section id="task-list" class="task-list">
     <div class="loading">Loading…</div>
   </section>
+
+  <div class="auth-bar">
+    <div class="auth-user" id="auth-user"></div>
+    <button id="logout-btn" class="auth-btn" type="button">Log out</button>
+  </div>
+  </div>
 </div>
 
 <script>
@@ -533,34 +564,81 @@ const state = {
   editingId: null
 };
 
-const STORAGE_KEY = 'tasks:all';
-
 // --- 2. STORAGE LAYER ---------------------------------------
 // In a real app these would be `fetch('/api/tasks')` calls.
 // Here we use localStorage as a simple client-side "database".
 
+async function currentUser() {
+  const { data: { user } } = await supabaseClient.auth.getUser();
+  return user;
+}
+
 async function loadTasks() {
-  const { data, error } = await supabaseClient.from('tasks').select('*').order('created_at', { ascending: false });
-  state.tasks = error ? [] : data;
+  const user = await currentUser();
+  if (!user) { state.tasks = []; return; }
+
+  const { data, error } = await supabaseClient
+    .from('tasks')
+    .select('*')
+    .eq('user_id', user.id)
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    console.error('Could not load tasks:', error);
+    state.tasks = [];
+    return;
+  }
+  state.tasks = data || [];
 }
 
 async function addTask(title, category, priority) {
-  const task = { id: uid(), title: title.trim(), category, priority, done: false, created_at: Date.now() };
-  await supabaseClient.from('tasks').insert(task);
+  const user = await currentUser();
+  if (!user) return;
+
+  const task = {
+    id: uid(),
+    user_id: user.id,
+    title: title.trim(),
+    category,
+    priority,
+    done: false,
+    created_at: Date.now()
+  };
+
+  const { error } = await supabaseClient.from('tasks').insert(task);
+  if (error) { console.error('Could not add task:', error); return; }
   state.tasks.unshift(task);
   render();
 }
 
 async function toggleTask(id) {
+  const user = await currentUser();
   const t = state.tasks.find(t => t.id === id);
-  if (!t) return;
-  t.done = !t.done;
-  await supabaseClient.from('tasks').update({ done: t.done }).eq('id', id);
+  if (!user || !t) return;
+  const nextDone = !t.done;
+
+  const { error } = await supabaseClient
+    .from('tasks')
+    .update({ done: nextDone })
+    .eq('id', id)
+    .eq('user_id', user.id);
+
+  if (error) { console.error('Could not update task:', error); return; }
+  t.done = nextDone;
   render();
 }
 
 async function deleteTask(id) {
-  await supabaseClient.from('tasks').delete().eq('id', id);
+  const user = await currentUser();
+  if (!user) return;
+
+  const { error } = await supabaseClient
+    .from('tasks')
+    .delete()
+    .eq('id', id)
+    .eq('user_id', user.id);
+
+  if (error) { console.error('Could not delete task:', error); return; }
   state.tasks = state.tasks.filter(t => t.id !== id);
   render();
 }
@@ -600,11 +678,14 @@ async function saveEdit(id) {
     if (categorySelect) t.category = categorySelect.value;
     if (prioritySelect) t.priority = prioritySelect.value;
   }
-  await supabaseClient.from('tasks').update({
+  const user = await currentUser();
+  if (!user || !t) return;
+  const { error } = await supabaseClient.from('tasks').update({
     title: t.title,
     category: t.category,
     priority: t.priority
-  }).eq('id', id);
+  }).eq('id', id).eq('user_id', user.id);
+  if (error) { console.error('Could not save task:', error); return; }
   state.editingId = null;
   renderTasks();
 }
@@ -751,10 +832,46 @@ document.getElementById('search').addEventListener('input', e => {
   renderTasks();
 });
 
-// --- 6. INIT ------------------------------------------------
-(async function init() {
+// --- 6. AUTH + INIT -----------------------------------------
+const authScreen = document.getElementById('auth-screen');
+const taskApp = document.getElementById('task-app');
+const authUser = document.getElementById('auth-user');
+
+document.getElementById('google-login-btn').addEventListener('click', async function () {
+  const redirectTo = window.location.origin + window.location.pathname;
+  const { error } = await supabaseClient.auth.signInWithOAuth({
+    provider: 'google',
+    options: { redirectTo }
+  });
+  if (error) console.error('Google sign-in failed:', error);
+});
+
+document.getElementById('logout-btn').addEventListener('click', async function () {
+  await supabaseClient.auth.signOut();
+});
+
+async function showSession(session) {
+  if (!session) {
+    state.tasks = [];
+    taskApp.classList.add('hidden');
+    authScreen.classList.remove('hidden');
+    return;
+  }
+
+  authScreen.classList.add('hidden');
+  taskApp.classList.remove('hidden');
+  authUser.textContent = session.user.email || 'Signed in';
   await loadTasks();
   render();
+}
+
+supabaseClient.auth.onAuthStateChange(function (_event, session) {
+  setTimeout(function () { showSession(session); }, 0);
+});
+
+(async function init() {
+  const { data: { session } } = await supabaseClient.auth.getSession();
+  await showSession(session);
 })();
 </script>
 
