@@ -7,6 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <style>
   :root {
@@ -519,6 +520,10 @@
    it. For that you'd swap this layer for real fetch() calls to
    a backend + database, same as the comments above describe.
 ============================================================ */
+const supabaseClient = supabase.createClient(
+  'https://YOUR-PROJECT.supabase.co',
+  'YOUR-ANON-PUBLIC-KEY' // Dashboard may label this "publishable key" now
+);
 
 // --- 1. STATE -----------------------------------------------
 const state = {
@@ -535,23 +540,29 @@ const STORAGE_KEY = 'tasks:all';
 // Here we use localStorage as a simple client-side "database".
 
 async function loadTasks() {
-  try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
-    state.tasks = raw ? JSON.parse(raw) : [];
-  } catch (err) {
-    // Missing key, corrupted JSON, or storage disabled — start fresh.
-    console.error('Load failed:', err);
-    state.tasks = [];
-  }
+  const { data, error } = await supabaseClient.from('tasks').select('*').order('created_at', { ascending: false });
+  state.tasks = error ? [] : data;
 }
 
-async function saveTasks() {
-  try {
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(state.tasks));
-  } catch (err) {
-    // Can throw if storage is full or disabled (e.g. private browsing).
-    console.error('Save failed:', err);
-  }
+async function addTask(title, category, priority) {
+  const task = { id: uid(), title: title.trim(), category, priority, done: false, created_at: Date.now() };
+  await supabaseClient.from('tasks').insert(task);
+  state.tasks.unshift(task);
+  render();
+}
+
+async function toggleTask(id) {
+  const t = state.tasks.find(t => t.id === id);
+  if (!t) return;
+  t.done = !t.done;
+  await supabaseClient.from('tasks').update({ done: t.done }).eq('id', id);
+  render();
+}
+
+async function deleteTask(id) {
+  await supabaseClient.from('tasks').delete().eq('id', id);
+  state.tasks = state.tasks.filter(t => t.id !== id);
+  render();
 }
 
 // --- 3. CRUD OPERATIONS -------------------------------------
@@ -562,34 +573,6 @@ async function saveTasks() {
 
 function uid() {
   return Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
-}
-
-async function addTask(title, category, priority) {
-  const task = {
-    id: uid(),
-    title: title.trim(),
-    category,
-    priority,
-    done: false,
-    createdAt: Date.now()
-  };
-  state.tasks.unshift(task);     // newest first
-  await saveTasks();
-  render();
-}
-
-async function toggleTask(id) {
-  const t = state.tasks.find(t => t.id === id);
-  if (!t) return;
-  t.done = !t.done;
-  await saveTasks();
-  render();
-}
-
-async function deleteTask(id) {
-  state.tasks = state.tasks.filter(t => t.id !== id);
-  await saveTasks();
-  render();
 }
 
 function startEdit(id) {
@@ -617,7 +600,11 @@ async function saveEdit(id) {
     if (categorySelect) t.category = categorySelect.value;
     if (prioritySelect) t.priority = prioritySelect.value;
   }
-  await saveTasks();
+  await supabaseClient.from('tasks').update({
+    title: t.title,
+    category: t.category,
+    priority: t.priority
+  }).eq('id', id);
   state.editingId = null;
   renderTasks();
 }
