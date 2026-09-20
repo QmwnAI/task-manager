@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Task Manager</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -392,11 +392,36 @@
 
   @media (max-width: 540px) {
     h1 { font-size: 42px; }
-    .stats { grid-template-columns: repeat(3, 1fr); gap: 8px; }
+    .stats { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
     .stat { padding: 12px; }
     .stat-value { font-size: 24px; }
     .form-row { flex-direction: column; }
     body { padding: 24px 16px; }
+  
+    /* Touch devices have no :hover — always show edit/delete buttons */
+    .edit-btn, .delete-btn { opacity: 1; }
+  
+    /* Tighten task rows and let edit-mode selects stack full-width */
+    .task { padding: 12px 14px; gap: 10px; }
+    .edit-meta { flex-direction: column; gap: 6px; }
+    .edit-meta select { width: 100%; }
+  
+    /* Filters wrap cleanly, search takes its own row */
+    .filters { gap: 6px; }
+    .search-wrap { min-width: 100%; order: 1; }
+  
+    /* --- Screen fitting --- */
+    /* Prevent any horizontal scroll if content ever runs wide */
+    html, body { overflow-x: hidden; width: 100%; }
+  
+    /* Badge + priority row wraps instead of forcing the card wider than the screen */
+    .task-meta { flex-wrap: wrap; row-gap: 4px; }
+  
+    /* Add button matches the full-width selects above it, instead of shrinking to text size */
+    .btn-primary { width: 100%; }
+  
+    /* Safe-area padding so content clears the notch/home-indicator on iPhones */
+    body { padding-left: max(16px, env(safe-area-inset-left)); padding-right: max(16px, env(safe-area-inset-right)); }
   }
 </style>
 </head>
