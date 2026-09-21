@@ -904,12 +904,32 @@ async function showSession(session) {
   render();
 }
 
-supabaseClient.auth.onAuthStateChange(function (_event, session) {
-  setTimeout(function () { showSession(session); }, 0);
+let lastSessionUserId = null;
+
+supabaseClient.auth.onAuthStateChange(function (event, session) {
+  const userId = session?.user?.id || null;
+
+  // INITIAL_SESSION is already handled by init() below.
+  // TOKEN_REFRESHED can happen automatically in the background and should
+  // not reload/re-render the entire task list.
+  if (event === 'INITIAL_SESSION' || event === 'TOKEN_REFRESHED') return;
+
+  if (event === 'SIGNED_IN') {
+    if (userId === lastSessionUserId) return;
+    lastSessionUserId = userId;
+    showSession(session);
+    return;
+  }
+
+  if (event === 'SIGNED_OUT') {
+    lastSessionUserId = null;
+    showSession(null);
+  }
 });
 
 (async function init() {
   const { data: { session } } = await supabaseClient.auth.getSession();
+  lastSessionUserId = session?.user?.id || null;
   await showSession(session);
 })();
 </script>
